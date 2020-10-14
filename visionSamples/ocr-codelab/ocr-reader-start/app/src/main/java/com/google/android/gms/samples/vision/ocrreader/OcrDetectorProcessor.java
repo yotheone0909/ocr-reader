@@ -15,14 +15,22 @@
  */
 package com.google.android.gms.samples.vision.ocrreader;
 
+import android.util.Log;
+import android.util.SparseArray;
+
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.GraphicOverlay;
+import com.google.android.gms.vision.Detector;
+import com.google.android.gms.vision.text.TextBlock;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A very simple Processor which gets detected TextBlocks and adds them to the overlay
  * as OcrGraphics.
  * TODO: Make this implement Detector.Processor<TextBlock> and add text to the GraphicOverlay
  */
-public class OcrDetectorProcessor {
+public class OcrDetectorProcessor implements Detector.Processor<TextBlock> {
 
     private GraphicOverlay<OcrGraphic> graphicOverlay;
 
@@ -31,4 +39,36 @@ public class OcrDetectorProcessor {
     }
 
     // TODO:  Once this implements Detector.Processor<TextBlock>, implement the abstract methods.
+    @Override
+    public void release() {
+        graphicOverlay.clear();
+    }
+
+    @Override
+    public void receiveDetections(Detector.Detections<TextBlock> detections) {
+        graphicOverlay.clear();
+        SparseArray<TextBlock> items = detections.getDetectedItems();
+        for (int i = 0; i < items.size(); i++) {
+            TextBlock item = items.valueAt(i);
+            if (item != null && item.getValue() != null && !extractDigits(item.getValue()).equalsIgnoreCase("")) {
+                Log.d("Processor", "Text detected! " + item.getValue());
+                OcrGraphic graphic = new OcrGraphic(graphicOverlay, item);
+                graphicOverlay.add(graphic);
+            }
+        }
+    }
+
+    //5555555
+
+    private String extractDigits(String text) {
+        if (text == null) {
+            return "";
+        }
+        final Pattern p = Pattern.compile("^[0-9]{6}$");
+        final Matcher m = p.matcher(text);
+        if (m.find() && m.group(0).length() == 6) {
+            return m.group(0);
+        }
+        return "";
+    }
 }
